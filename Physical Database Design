@@ -1,0 +1,107 @@
+Physical Database Design (SQL DDL Commands)
+
+-- Drop Table Commands
+drop table if exists Drug
+drop table if exists Delivery
+drop table if exists StudySite
+drop table if exists SitePharmacy
+drop table if exists SitePharmacyContact
+drop table if exists ExpiryDate
+drop table if exists Courier
+drop table if exists Depot
+
+-- Creating the Depot table
+create table Depot (
+	-- Columns for the Depot table
+	DepotID int identity not null primary key,
+DepotName varchar(50) not null,
+	DepotAddress1 varchar(50) not null,
+	DepotAddress2 varchar(50),
+	DepotCityName varchar(50) not null,
+	DepotStateProvince varchar(50) not null,
+	DepotPostalCode varchar(50) not null,
+	DepotCountry varchar(50) not null
+)
+-- End creating the depot table
+
+-- Creating the Courier table
+create table Courier (
+	-- Columns for the Courier table
+	CourierID int identity not null primary key,
+	JobNumber varchar(10) not null unique,
+	PickUpDate datetime not null
+)
+-- End creating the courier table
+
+-- Creating the ExpiryDate table
+create table ExpiryDate (
+	-- Columns for the ExpiryDate table
+	ExpiryDateID int identity not null primary key,
+	ExpiryDate datetime not null,
+	ManufactureDate datetime not null,
+	LotNumber varchar(10) not null
+)
+-- End creating the ExpiryDate table
+
+-- Creating the SitePharmacyContact table
+create table SitePharmacyContact (
+	-- Columns for the SitePharmacyContact table
+	SitePharmacyContactID int identity not null primary key,
+	PharmacyContactFirstName varchar(50) not null,
+	PharmacyContactMiddleInitial char(1),
+	PharmacyContactLastName varchar(50) not null,
+	PharmacyPhoneNumber varchar(50) not null
+)
+-- End creating the SitePharmacyContact table
+
+-- Creating the SitePharmacy table
+create table SitePharmacy (
+	-- Columns for the SitePharmacy table
+	SitePharmacyID int identity not null primary key,
+SitePharmacyContactID int not null foreign key references SitePharmacyContact(SitePharmacyContactID),
+PharmacyAddressName varchar(150),
+PharmacyAddress1 varchar(50) not null,
+PharmacyAddress2 varchar(50),
+PharmacyCityName varchar(50) not null,
+PharmacyStateProvince varchar(50), not null
+PharmacyPostalCode varchar(50) not null,
+PharmacyCountry varchar(50) not null,
+CloseOutVisitDate datetime not null
+)
+-- End creating the SitePharmacy table
+
+-- Creating the StudySite table
+create table StudySite (
+	-- Columns for the Site table
+	SiteID int identity not null primary key,
+	SiteNumber varchar(10) not null,
+	SiteName varchar(50) not null,
+	SitePILastName varchar(50) not null,
+	CountryName varchar(50) not null,
+	SitePharmacyID int not null foreign key references SitePharmacy(SitePharmacyID),
+	-- Unique constraint for StudySite Table
+	constraint U1_StudySite unique (SiteNumber, SiteName)
+)
+-- End creating the StudySite table
+
+-- Creating the Delivery table
+create table Delivery (
+	-- Columns for the Delivery table
+	DeliveryID int identity not null primary key,
+	SitePharmacyID int not null foreign key references SitePharmacy(SitePharmacyID),
+	CourierID int not null foreign key references Courier(CourierID),
+	DepotID int not null foreign key references Depot(DepotID),
+	DeliveryDate datetime not null
+)
+-- End creating the Delivery table
+
+-- Creating the Drug table
+create table Drug (
+	-- Columns for the Drug table
+	DrugID int identity not null primary key,
+	MedID varchar(10) not null unique,
+SitePharmacyID int not null foreign key references SitePharmacy(SitePharmacyID),
+	ExpiryDateID int not null foreign key references ExpiryDate(ExpiryDateID),
+	DeliveryID int not null foreign key references Delivery(DeliveryID)
+)
+-- End creating the Drug table
