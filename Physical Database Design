@@ -1,4 +1,4 @@
-Physical Database Design (SQL DDL Commands)
+-- Physical Database Design (SQL DDL Commands)
 
 -- Drop Table Commands
 drop table if exists Drug
