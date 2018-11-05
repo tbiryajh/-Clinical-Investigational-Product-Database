@@ -1,0 +1,104 @@
+-- SQL DDL for Views/Functions/Procedures
+
+-- What is the MedID for the drugs associated with a site and site pharmacy?
+-- Create View for DrugReturnInformation
+go
+drop view if exists DrugReturnInformation
+go
+create or alter view DrugReturnInformation as
+	select 
+		SiteNumber, SiteName, PharmacyCountry, MedID, convert(date, ExpiryDate) as RetestDate,
+		DepotName as StorageLocation, convert(date, DeliveryDate) as ReceivedOn
+		from StudySite 
+		join SitePharmacy on StudySite.SitePharmacyID = SitePharmacy.SitePharmacyID
+		join Drug on SitePharmacy.SitePharmacyID = Drug.SitePharmacyID
+		join ExpiryDate on ExpiryDate.ExpiryDateID = Drug.ExpiryDateID
+		join Delivery on Delivery.DeliveryID = Drug.DeliveryID
+		join Depot on Depot.DepotID = Delivery.DepotID
+go
+
+-- Create a function to show the quantity of drug at a site given the site number
+go		
+drop function if exists dbo.QuantityAtSite
+go
+create or alter function dbo.QuantityAtSite(@sitenumber varchar(10))
+returns int as
+begin
+	declare @returnValue int
+
+	select @returnValue = COUNT(MedID)
+	from DrugReturnInformation
+	where SiteNumber = @sitenumber
+
+	return @returnValue
+end 
+go
+
+-- What is the average transit time for a delivery from a specfic country to a depot
+-- Create View for AverageTransitTime
+go
+drop view if exists AverageTransitTime
+go
+create or alter view AverageTransitTime as
+	select 
+		PharmacyCountry, 
+		DepotName,
+		avg(datediff(d, PickupDate, DeliveryDate)) as 'AverageTransitTime (in Days)'
+	from SitePharmacy
+	join Delivery on Delivery.SitePharmacyID = SitePharmacy.SitePharmacyID
+	join Courier on Courier.CourierID = Delivery.CourierID
+	join Depot on Depot.DepotID = Delivery.DepotID
+	group by PharmacyCountry, DepotName
+go
+
+-- How many deliveries to the depot were made within a month?
+-- Create a view for the number of Deliveries per Month
+go
+drop view if exists DeliveriesPerMonth
+go
+create or alter view DeliveriesPerMonth as
+	select 
+		DepotName, 
+		month(DeliveryDate) as DeliveryMonth, 
+		count(DeliveryID) as NumberOfDeliveries
+	from Depot
+	join Delivery on Delivery.DepotID = Depot.DepotID
+	group by 
+		month(DeliveryDate), 
+		DepotName
+go
+
+-- What are the counts of the drug by expiry date by depot?
+-- create view for depot inventory
+go
+drop view if exists DepotInventory
+go
+create or alter view DepotInventory as
+	select
+		DepotName,
+		convert(date, ExpiryDate) as RetestDate, 
+		count(MedID) as Inventory
+	from Depot
+	join Delivery on Delivery.DepotID = Depot.DepotID
+	join Drug on Drug.DeliveryID = Delivery.DeliveryID
+	join ExpiryDate on ExpiryDate.ExpiryDateID = Drug.ExpiryDateID
+	group by DepotName, convert(date, ExpiryDate)
+go
+
+-- Create procedure to update the expiry date of a given Lot Number
+go
+drop procedure if exists ExpiryDateUpdate
+go
+create or alter procedure ExpiryDateUpdate(@lotnumber varchar(10), @newdate datetime)
+as
+begin
+	-- Update the expiry date of the selected lot number with the new date
+	update ExpiryDate 
+	set ExpiryDate.ExpiryDate = @newdate
+	where ExpiryDate.LotNumber = @lotnumber 
+	-- Return the updated lot information
+	select * 
+	from ExpiryDate 
+	where ExpiryDate.LotNumber = @lotnumber 
+end
+go
